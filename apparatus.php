@@ -1,22 +1,22 @@
 <?php
 
 /**
- * Класс реализует работу с фискальным регистратором.
+ * Implements work with fiscal registrar.
  */
 class ApparatusApi
 {
     /**
-     * Ошибка порта.
+     * Port error.
      */
     const ERROR_PORT = 301;
 
     /**
-     * Время смены исчерпано.
+     * Shift time is ower.
      */
     const ERROR_SHIFT = 18;
 
     /**
-     * Аппарат не ответил за положенное время.
+     * Device did not respond within allotted time.
      */
     const ERROR_UNKNOWN = 309;
 
@@ -26,30 +26,30 @@ class ApparatusApi
     private static $instance = null;
 
     /**
-     * Номер порта.
+     * Port number.
      *
      * @var int
      */
     private $i_port;
 
     /**
-     * Объект аппарата. Все взаимодействия производятся через него.
+     * Object of device. All communications are made through it.
      *
      * @var COM
      */
     private $o_erc;
 
     /**
-     * Серийный номер аппарата.
+     * Device serial number.
      *
      * @var string
      */
     private $s_serial;
 
     /**
-     * При создании объекта инициализирует его поля.
+     * When creating object initializes its fields.
      *
-     * @throws Exception В случае ошибок.
+     * @throws Exception On errors.
      */
     private function __construct()
     {
@@ -67,8 +67,8 @@ class ApparatusApi
     }
 
     /**
-     * При уничтожении объекта закрывает порт.
-     * Если пытаемся закрыть уже закрытый порт, то это не страшно.
+     * When object is destroyed, closes port.
+     * If you try to close already closed port, it is not problem.
      */
     function __destruct()
     {
@@ -76,11 +76,11 @@ class ApparatusApi
     }
 
     /**
-     * Закрывает порт и бросает исключение в случае ошибки аппарата.
+     * Closes port and throws exception when device error.
      *
-     * @param string $s_code Код ошибки.
-     * @param string $s_message Текст сообщения.
-     * @throws Exception В случае ошибок.
+     * @param string $s_code Error code.
+     * @param string $s_message Message text.
+     * @throws Exception Always.
      */
     private function _exception($s_code, $s_message)
     {
@@ -90,9 +90,9 @@ class ApparatusApi
     }
 
     /**
-     * Возвращает сумму в денежном ящике.
+     * Returns amount in cashbox.
      *
-     * @return float Сумма в денежном ящике.
+     * @return float Amount in cashbox.
      */
     public function cashbox()
     {
@@ -101,9 +101,9 @@ class ApparatusApi
     }
 
     /**
-     * Регистрирует кассира.
+     * Registers cashier.
      *
-     * @param string $s_personnel ФИО кассира.
+     * @param string $s_personnel Cashier full name.
      */
     public function cashier($s_personnel)
     {
@@ -112,12 +112,12 @@ class ApparatusApi
     }
 
     /**
-     * Вызывается для создания объекта.
-     * Открывает порт.
-     * Если пытаемся открыть уже открытый порт, то это не страшно.
+     * Is called to create object.
+     * Opens port.
+     * If you try to open already opened port, it is not problem.
      *
-     * @return ApparatusApi Объект для работы с фискальным регистратором.
-     * @throws Exception В случае ошибок.
+     * @return ApparatusApi Object to work with fiscal registrar.
+     * @throws Exception On error.
      */
     public static function create()
     {
@@ -130,9 +130,9 @@ class ApparatusApi
     }
 
     /**
-     * Печатает нулевой чек.
+     * Prints zero bill.
      *
-     * @param string $s_personnel ФИО кассира.
+     * @param string $s_personnel Cashier full name.
      */
     public function emptyReceipt($s_personnel)
     {
@@ -142,44 +142,44 @@ class ApparatusApi
     }
 
     /**
-     * Основная функция выполняющая большинство непосредственных обращений к аппарату.
+     * Main function which performing most direst appeals to device.
      *
-     * @param string $s_command Команда для выполнения.
-     * @return array|null Массив составляющих ответа для тех команд, на которые аппарат возвращает ответ;
-     * <tt>null</tt> для команд, ответ на которые аппарат не возвращает.
-     * @throws LombardApparatusException
+     * @param string $s_command Command to execute.
+     * @return array|null Array of response components for commands, for which device returns result;
+     * <tt>null</tt> for commands, for which device does not return result.
+     * @throws LombardApparatusException On errors.
      */
     public function execute($s_command)
     {
         $a_result = array();
         $s_command_original = $s_command;
 
-        // В случае некоторых ошибок пробуем посторить операцию до 4-х раз.
+        // In case of some errors trying to repeat operation of up 4 times.
         for ($i = 0; $i < 4; $i++) {
             $s_command = $s_command_original;
             $this->o_erc->T400me($s_command);
 
             if ($s_command === $s_command_original) {
                 break;
-            }// Некоторые команды ничего не возвращают. Кода ошибки в них быть не может. Ну и хорошо.
+            }// Some commands do not return anything. Its can not return error code. So, well.
 
             $a_result = explode(';', $s_command);
             if (!$a_result[0] || $a_result[0] != self::ERROR_UNKNOWN) {
                 break;
-            }// Первое значение в ответе - код ошибки. Если первое значение пустое, то - успех.
+            }// First value in response is error code. If first value is empty, it is success.
         }
 
         if ($a_result) {
             if ($a_result[0]) {
                 switch ($a_result[0]) {
                     case self::ERROR_PORT:
-                        $s_message = 'Не удалось соединиться с кассовым аппаратом. Проверьте, подключён ли кассовый аппарат.';
+                        $s_message = 'Can not connect to device. Check if device is plugged.';
                         break;
                     case self::ERROR_SHIFT:
-                        $s_message = 'Длительность смены превышает допустимую.';
+                        $s_message = 'Duration of shift exceeds allowable duration.';
                         break;
                     default:
-                        $s_message = 'Не удалось выполнить операцию `' . $s_command_original . '`. Код ошибки: `' . $a_result[0] . '`';
+                        $s_message = 'Can ton perform operation `' . $s_command_original . '`. Error code: `' . $a_result[0] . '`';
                         break;
                 }
                 $this->_exception('operation-fail', $s_message);
@@ -192,8 +192,8 @@ class ApparatusApi
     }
 
     /**
-     * Закрывает COM порт.
-     * Освобождает блокировку в базе данных.
+     * Closes COM port.
+     * Releases lock in database.
      */
     public function portClose()
     {
@@ -204,10 +204,10 @@ class ApparatusApi
     }
 
     /**
-     * Открывает COM порт.
-     * Устанавливает блокировку в базе данных для того, чтобы другой процесс не мог работать с аппаратом параллельно.
+     * Opens COM port.
+     * Sets lock in database to other process may not work in parallel with device.
      *
-     * @throws Exception В случае ошибок.
+     * @throws Exception On errors.
      */
     public function portOpen()
     {
@@ -222,11 +222,11 @@ class ApparatusApi
     }
 
     /**
-     * Прописывает в настройки аппарата новый товар.
+     * Sets up new goods into device settings.
      *
-     * @param array $a_data Данные товара:
-     * <dl><dt>int <var>i_code</var></dt><dd>Код.</dd>
-     * <dt>string <var>s_title</var></dt><dd>Наименование товара.</dd></dl>
+     * @param array $a_data Product data:
+     * <dl><dt>int <var>i_code</var></dt><dd>Code.</dd>
+     * <dt>string <var>s_title</var></dt><dd>Product name.</dd></dl>
      */
     public function purchaseAdd(array $a_data)
     {
@@ -238,15 +238,15 @@ class ApparatusApi
     }
 
     /**
-     * Печатает чек продажи/возврата товара.
+     * Prints bill of goods sale/return.
      *
-     * @param array $a_data Входные данные:
-     * <dl><dt>array[] <var>a_account</var></dt><dd>Перечень товаров в чеке. Каждый элемент - подмассив:
-     * <dl><dt>float <var>f_add</var></dt><dd>Стоимость.</dd>
-     * <dt>int <var>i_code</var></dt><dd>Код товара.</dd></dl>
+     * @param array $a_data Input data:
+     * <dl><dt>array[] <var>a_account</var></dt><dd>List of goods in bill. Every element - sub array:
+     * <dl><dt>float <var>f_add</var></dt><dd>Cost.</dd>
+     * <dt>int <var>i_code</var></dt><dd>Code of product.</dd></dl>
      * </dd>
-     * <dt>bool <var>is_in</var></dt><dd><tt>true</tt> - чек продажи; <tt>false</tt> - чек возврата.</dd>
-     * <dt>string <var>s_personnel</var></dt><dd>ФИО сотрудника</dd></dl>
+     * <dt>bool <var>is_in</var></dt><dd><tt>true</tt> - sale bill; <tt>false</tt> - return bill.</dd>
+     * <dt>string <var>s_personnel</var></dt><dd>Cashier full name.</dd></dl>
      */
     public function sale(array $a_data)
     {
@@ -263,9 +263,9 @@ class ApparatusApi
     }
 
     /**
-     * Возвращает дату/время начала смены в формате Unix.
+     * Returns date/time of shift start in Unix format.
      *
-     * @return int Дата/время начала смены.
+     * @return int Date/time of shift start.
      */
     public function shiftTime()
     {
@@ -274,12 +274,12 @@ class ApparatusApi
     }
 
     /**
-     * Производит служебный внос/вынос.
+     * Performs service deposit/removal.
      *
-     * @param array $a_data Входные данные:
-     * <dl><dt>float <var>f_sum</var></dt><dd>Сумма.</dd>
-     * <dt>bool <var>is_in</var></dt><dd><tt>true</tt> - служебный внос; <tt>false</tt> - служебный вынос.</dd>
-     * <dt>string <var>s_personnel</var></dt><dd>ФИО сотрудника.</dd></dl>
+     * @param array $a_data Input data:
+     * <dl><dt>float <var>f_sum</var></dt><dd>Amount.</dd>
+     * <dt>bool <var>is_in</var></dt><dd><tt>true</tt> - service deposit; <tt>false</tt> - service removal.</dd>
+     * <dt>string <var>s_personnel</var></dt><dd>Cashier full name.</dd></dl>
      */
     public function service(array $a_data)
     {
@@ -289,9 +289,9 @@ class ApparatusApi
     }
 
     /**
-     * Проверяет правильность установок аппарата: серийный номер и дату на часах.
+     * Check correctness of device settings: serial number an date in clock.
      *
-     * @throws Exception В случае обнаружения ошибок.
+     * @throws Exception On errors.
      */
     public function verify()
     {
@@ -300,7 +300,7 @@ class ApparatusApi
         if ($s_serial !== $this->s_serial) {
             $this->_exception(
               'serial',
-              'Серия аппарата не соответствует настроенной. Текущая версия `' . $s_serial . '`; настроенная `' . $this->s_serial . '`'
+              'Series of device does not correspond to configured. Current series `' . $s_serial . '`; configured `' . $this->s_serial . '`'
             );
         }
 
@@ -315,16 +315,16 @@ class ApparatusApi
         if ($a[0] !== $s_now) {
             $this->_exception(
               'time',
-              'Дата на аппарате не соответствует времени на компьютере. Дата на аппарате: `' . $a[0] . '`; дата на компьютере: `' .
+              'Date on device does not correspond to date on computer. Date on device: `' . $a[0] . '`; date on computer: `' .
               $s_now . '`'
             );
         }
     }
 
     /**
-     * Печатает z-отчёт.
+     * Prints z-report.
      *
-     * @param string $s_personnel ФИО сотрудника.
+     * @param string $s_personnel Cashier full name.
      */
     public function z($s_personnel)
     {
